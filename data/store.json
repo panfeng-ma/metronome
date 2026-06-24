@@ -1,0 +1,71 @@
+{
+  "users": {
+    "demo": {
+      "id": "demo",
+      "email": "demo@example.com",
+      "metronomeCustomerId": "fc140d8a-b765-4552-b6f7-019765c1bfc4",
+      "lastMetronomeCustomerCreatedAt": "2026-06-24T01:53:10.167Z",
+      "metronomeContractId": "880ec1eb-8472-4e87-94d9-86ae3dbcc12f",
+      "lastMetronomeContractCreatedAt": "2026-06-24T01:53:10.167Z",
+      "stripeCustomerId": "cus_UlCOa0ehUOsONG",
+      "defaultStripePaymentMethodId": "pm_1Tlg0Z3PlqPe1EGSsejtaqbh",
+      "metronomeBillingProviderConfigurationId": "b7cb9462-812f-4171-8e8a-83c61bcf2a7d",
+      "lastCardSetupAt": "2026-06-24T01:53:48.179Z",
+      "lastMetronomeStripeBillingConfigAt": "2026-06-24T01:53:48.179Z",
+      "autoRecharge": {
+        "enabled": false,
+        "threshold": null,
+        "rechargeToAmount": null,
+        "configuredAt": null
+      },
+      "balance": 919,
+      "totalAllowance": 1040,
+      "lowBalanceReminderSent": false,
+      "lastRechargeAt": "2026-06-24T02:25:09.130Z",
+      "lastMetronomeBalanceSyncAt": "2026-06-24T02:25:37.228Z"
+    }
+  },
+  "processedEvents": [],
+  "notifications": [
+    {
+      "id": "low-balance-1782266301866",
+      "userId": "demo",
+      "email": "demo@example.com",
+      "balance": 0,
+      "totalAllowance": 10,
+      "threshold": 2,
+      "reason": "metronome-sync",
+      "createdAt": "2026-06-24T01:58:21.866Z"
+    },
+    {
+      "id": "low-balance-1782266335437",
+      "userId": "demo",
+      "email": "demo@example.com",
+      "balance": 0,
+      "totalAllowance": 20,
+      "threshold": 2,
+      "reason": "metronome-sync",
+      "createdAt": "2026-06-24T01:58:55.437Z"
+    },
+    {
+      "id": "low-balance-1782267851433",
+      "userId": "demo",
+      "email": "demo@example.com",
+      "balance": 0,
+      "totalAllowance": 30,
+      "threshold": 2,
+      "reason": "metronome-sync",
+      "createdAt": "2026-06-24T02:24:11.433Z"
+    },
+    {
+      "id": "low-balance-1782267887103",
+      "userId": "demo",
+      "email": "demo@example.com",
+      "balance": 0,
+      "totalAllowance": 40,
+      "threshold": 2,
+      "reason": "metronome-sync",
+      "createdAt": "2026-06-24T02:24:47.103Z"
+    }
+  ]
+}
