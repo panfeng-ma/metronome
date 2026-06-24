@@ -117,3 +117,28 @@ code {
 ul {
   padding-left: 20px;
 }
+
+.dashboard-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.dashboard-tab {
+  background: #eef2ff;
+  color: #155eef;
+}
+
+.dashboard-tab.active {
+  background: #155eef;
+  color: #fff;
+}
+
+.dashboard-frame {
+  border: 1px solid #e5e8f0;
+  border-radius: 14px;
+  height: min(720px, 70vh);
+  min-height: 480px;
+  width: 100%;
+}

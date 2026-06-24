@@ -28,6 +28,119 @@ type AutoRechargeFieldsProps = {
   minimumAutoRechargeTopUp: number;
 };
 
+type DashboardType = "invoices" | "usage" | "commits_and_credits";
+
+type DashboardProps = {
+  customerId: string | null;
+};
+
+const DASHBOARD_TABS: Array<{ id: DashboardType; label: string }> = [
+  { id: "commits_and_credits", label: "Credits & Commits" },
+  { id: "usage", label: "Usage" },
+  { id: "invoices", label: "Invoices" },
+];
+
+export function Dashboard({ customerId }: DashboardProps) {
+  const [dashboard, setDashboard] = useState<DashboardType>("commits_and_credits");
+  const [embedUrl, setEmbedUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!customerId) {
+      setEmbedUrl(null);
+      setError(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadDashboard = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const params = new URLSearchParams({
+          dashboard,
+          customer_id: customerId,
+        });
+        const response = await fetch(`/api/metronome/dashboard?${params.toString()}`, {
+          cache: "no-store",
+          headers: { Accept: "application/json" },
+        });
+
+        if (!response.ok) {
+          const message = await response.text();
+          throw new Error(message || "加载 Dashboard 失败");
+        }
+
+        const payload = (await response.json()) as { url: string };
+        if (!cancelled) {
+          setEmbedUrl(payload.url);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setEmbedUrl(null);
+          setError(
+            loadError instanceof Error ? loadError.message : "加载 Dashboard 失败",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadDashboard();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [customerId, dashboard]);
+
+  if (!customerId) {
+    return (
+      <section className="card">
+        <h2>Billing Dashboard</h2>
+        <p className="muted">请先创建 Metronome Customer 后再查看嵌入式账单 Dashboard。</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="card dashboard-card">
+      <h2>Billing Dashboard</h2>
+      <p className="muted">
+        通过 Metronome embeddable dashboard 查看发票、用量与 Credits/Commits 余额。
+      </p>
+      <div className="dashboard-tabs" role="tablist" aria-label="Dashboard 类型">
+        {DASHBOARD_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={dashboard === tab.id}
+            className={dashboard === tab.id ? "dashboard-tab active" : "dashboard-tab"}
+            onClick={() => setDashboard(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      {error ? <div className="alert">{error}</div> : null}
+      {loading ? <p className="muted">正在加载 Dashboard…</p> : null}
+      {embedUrl ? (
+        <iframe
+          className="dashboard-frame"
+          src={embedUrl}
+          title={`Metronome ${dashboard} dashboard`}
+        />
+      ) : null}
+    </section>
+  );
+}
+
 export function BalanceOverview({
   customerId,
   email,
@@ -39,7 +152,7 @@ export function BalanceOverview({
   message,
   pendingStartedAt,
   shouldRedirectOnRecharge,
-  threshold
+  threshold,
 }: BalanceOverviewProps) {
   const [balance, setBalance] = useState(initialBalance);
   const [totalAllowance, setTotalAllowance] = useState(initialTotalAllowance);
@@ -55,7 +168,7 @@ export function BalanceOverview({
       try {
         const response = await fetch("/api/balance", {
           cache: "no-store",
-          headers: { Accept: "application/json" }
+          headers: { Accept: "application/json" },
         });
         if (!response.ok) {
           return;
@@ -71,7 +184,7 @@ export function BalanceOverview({
             user,
             initialBalance,
             initialTotalAllowance,
-            pendingStartedAt
+            pendingStartedAt,
           })
         ) {
           const nextUrl = new URL("/", window.location.origin);
@@ -104,7 +217,7 @@ export function BalanceOverview({
     initialBalance,
     initialTotalAllowance,
     pendingStartedAt,
-    shouldRedirectOnRecharge
+    shouldRedirectOnRecharge,
   ]);
 
   return (
@@ -113,17 +226,24 @@ export function BalanceOverview({
       <h1>可消费额度</h1>
       <div className="balance">${formatMoney(balance)}</div>
       <p className="muted">
-        累计预付费额度 <span>${formatMoney(totalAllowance)}</span>，可用额度低于 $
-        {formatMoney(threshold)} 时提醒。
+        累计预付费额度 <span>${formatMoney(totalAllowance)}</span>，可用额度低于
+        ${formatMoney(threshold)} 时提醒。
         {lowBalanceReminderSent ? "本轮充值已发送过低余额提醒。" : ""}
       </p>
-      {message ? <div className={`alert ${isSuccessStatus ? "success" : ""}`}>{message}</div> : null}
-      {lastMetronomeBalanceSyncError ? (
-        <div className="alert">
-          Metronome 余额同步失败，当前展示本地缓存：{lastMetronomeBalanceSyncError}
+      {message ? (
+        <div className={`alert ${isSuccessStatus ? "success" : ""}`}>
+          {message}
         </div>
       ) : null}
-      {balance > 0 ? null : <div className="alert">当前没有可用额度，请先充值。</div>}
+      {lastMetronomeBalanceSyncError ? (
+        <div className="alert">
+          Metronome 余额同步失败，当前展示本地缓存：
+          {lastMetronomeBalanceSyncError}
+        </div>
+      ) : null}
+      {balance > 0 ? null : (
+        <div className="alert">当前没有可用额度，请先充值。</div>
+      )}
     </section>
   );
 }
@@ -131,10 +251,12 @@ export function BalanceOverview({
 export function AutoRechargeFields({
   initialMinimumRetainedBalance,
   initialThreshold,
-  minimumAutoRechargeTopUp
+  minimumAutoRechargeTopUp,
 }: AutoRechargeFieldsProps) {
   const [threshold, setThreshold] = useState(formatMoney(initialThreshold));
-  const [retained, setRetained] = useState(formatMoney(initialMinimumRetainedBalance));
+  const [retained, setRetained] = useState(
+    formatMoney(initialMinimumRetainedBalance),
+  );
 
   const minRetained = useMemo(() => {
     const thresholdAmount = Number(threshold);
@@ -184,7 +306,8 @@ export function AutoRechargeFields({
       </label>
       <p className="muted">
         Metronome 当前要求最低保留额度至少比触发阈值高 $
-        {formatMoney(minimumAutoRechargeTopUp)}。按当前填写值，余额在触发阈值附近时预计补差约 $
+        {formatMoney(minimumAutoRechargeTopUp)}
+        。按当前填写值，余额在触发阈值附近时预计补差约 $
         {formatMoney(estimatedTopUpAtThreshold)}。
       </p>
     </>
@@ -195,7 +318,7 @@ function hasSyncedRecharge({
   user,
   initialBalance,
   initialTotalAllowance,
-  pendingStartedAt
+  pendingStartedAt,
 }: {
   user: BalancePayload;
   initialBalance: number;
@@ -208,7 +331,8 @@ function hasSyncedRecharge({
   return (
     isTimestampAfter(user.lastRechargeAt, pendingStartedAt) ||
     totalAllowance > Number(initialTotalAllowance) ||
-    (balance > Number(initialBalance) && totalAllowance >= Number(initialTotalAllowance))
+    (balance > Number(initialBalance) &&
+      totalAllowance >= Number(initialTotalAllowance))
   );
 }
 
@@ -223,7 +347,11 @@ function isTimestampAfter(value?: string | null, baseline?: string | null) {
 
   const timestamp = Date.parse(value);
   const baselineTimestamp = Date.parse(baseline);
-  return Number.isFinite(timestamp) && Number.isFinite(baselineTimestamp) && timestamp >= baselineTimestamp;
+  return (
+    Number.isFinite(timestamp) &&
+    Number.isFinite(baselineTimestamp) &&
+    timestamp >= baselineTimestamp
+  );
 }
 
 function formatMoney(value: number) {

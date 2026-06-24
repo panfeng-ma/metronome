@@ -5,7 +5,7 @@ import {
   getUserWithMetronomeBalance
 } from "../lib/billing";
 import { loadStore } from "../lib/store";
-import { AutoRechargeFields, BalanceOverview } from "./page-client";
+import { AutoRechargeFields, BalanceOverview, Dashboard } from "./page-client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -99,6 +99,8 @@ export default async function HomePage({
         shouldRedirectOnRecharge={resolvedStatus === "recharge_pending"}
         threshold={threshold}
       />
+
+      <Dashboard customerId={metronomeCustomerId} />
 
       <section className="grid">
         <div className="card">

@@ -591,6 +591,45 @@ export async function getMetronomeBillingDiagnostics(userId = "demo") {
   }
 }
 
+const EMBEDDABLE_DASHBOARD_TYPES = new Set([
+  "invoices",
+  "usage",
+  "commits_and_credits",
+]);
+
+export async function getEmbeddableDashboardUrl({
+  customerId,
+  dashboard = "commits_and_credits",
+  userId = "demo",
+}: {
+  customerId?: string;
+  dashboard?: string;
+  userId?: string;
+} = {}) {
+  if (!EMBEDDABLE_DASHBOARD_TYPES.has(dashboard)) {
+    throw new AppError("无效的 dashboard 类型", 400);
+  }
+
+  const metronomeCustomerId =
+    customerId ?? (await getRequiredMetronomeCustomerId(userId));
+  const metronome = getMetronomeClient();
+  const response = await metronome.v1.dashboards.getEmbeddableURL({
+    customer_id: metronomeCustomerId,
+    dashboard,
+  });
+  const url = response?.data?.url;
+
+  if (!url) {
+    throw new AppError("Metronome 未返回 embeddable dashboard URL", 502);
+  }
+
+  return {
+    url,
+    dashboard,
+    customerId: metronomeCustomerId,
+  };
+}
+
 function getCreatedContractEditCommitId(response) {
   const commitId =
     response?.data?.edit?.add_commits?.[0]?.id ??
