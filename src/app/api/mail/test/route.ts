@@ -1,35 +1,21 @@
-import { AppError, sendTestEmail } from "../../../../lib/billing";
-import { readBody, redirectHome, withRouteErrors } from "../../../../lib/route-utils";
+import { sendTestEmail } from "../../../../lib/billing";
+import { jsonResponse, readJsonBody, withRouteErrors } from "../../../../lib/route-utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request): Promise<Response> {
   return withRouteErrors(request, async () => {
-    const body = await readBody(request);
+    const body = await readJsonBody(request);
+    const result = await sendTestEmail({
+      to: body.email
+    });
 
-    try {
-      const result = await sendTestEmail({
-        to: body.email
-      });
-
-      return redirectHome(request, {
-        status: result.dryRun ? "test_email_dry_run" : "test_email_sent",
-        customerId: body.customer_id
-      });
-    } catch (error) {
-      if (error instanceof AppError && error.status === 400) {
-        return redirectHome(request, {
-          status: "test_email_invalid",
-          customerId: body.customer_id
-        });
-      }
-
-      console.error(error);
-      return redirectHome(request, {
-        status: "test_email_failed",
-        customerId: body.customer_id
-      });
-    }
+    return jsonResponse({
+      message: result.dryRun
+        ? "测试邮件已进入 dry-run，未完整配置 SMTP_HOST、SMTP_USER 和 SMTP_PASS，邮件内容已打印在服务端日志中。"
+        : "测试邮件已发送，请检查目标邮箱。",
+      dryRun: result.dryRun
+    });
   });
 }

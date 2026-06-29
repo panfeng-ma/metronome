@@ -1,28 +1,19 @@
-import { AppError, deleteBillingCustomer } from "../../../../../lib/billing";
-import { readBody, redirectHome, redirectTo, withRouteErrors } from "../../../../../lib/route-utils";
+import { deleteBillingCustomer } from "../../../../../lib/billing";
+import { jsonResponse, readJsonBody, withRouteErrors } from "../../../../../lib/route-utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request): Promise<Response> {
   return withRouteErrors(request, async () => {
-    const body = await readBody(request);
+    const body = await readJsonBody(request);
 
-    try {
-      await deleteBillingCustomer({
-        customerId: body.customer_id
-      });
+    await deleteBillingCustomer({
+      customerId: body.customer_id
+    });
 
-      return redirectTo(request, "/?status=customer_deleted");
-    } catch (error) {
-      if (error instanceof AppError && error.message.includes("METRONOME_BEARER_TOKEN")) {
-        return redirectHome(request, {
-          status: "customer_delete_unconfigured",
-          customerId: body.customer_id
-        });
-      }
-
-      throw error;
-    }
+    return jsonResponse({
+      message: "当前 Metronome Customer 已归档，本地状态已重置。"
+    });
   });
 }

@@ -118,6 +118,7 @@ export async function createBillingCustomer({ userId = "demo" }: any = {}) {
   assertMetronomeContractConfig();
   const stripeCustomerId = await createStripeCustomerIfConfigured(userId);
   const payload = buildMetronomeCustomerPayload({ user, stripeCustomerId });
+  console.log("createBillingCustomer", JSON.stringify(payload, null, 2));
   const customer = await createMetronomeCustomer(payload);
   const metronomeCustomerId = getCreatedMetronomeCustomerId(customer);
   const billingProviderConfigurationId = stripeCustomerId
@@ -166,7 +167,7 @@ export async function createCardSetupSession({ origin, userId = "demo" }: any) {
       },
     },
     success_url: `${origin}/api/billing/card/setup/success?session_id={CHECKOUT_SESSION_ID}&${customerQuery}`,
-    cancel_url: `${origin}/?status=card_setup_cancelled&${customerQuery}`,
+    cancel_url: `${origin}/api/billing/card/setup/cancel?${customerQuery}`,
     metadata: {
       user_id: userId,
     },
@@ -1283,14 +1284,19 @@ async function createStripeCustomerIfConfigured(userId) {
     return user.stripeCustomerId;
   }
 
-  const stripe = getStripeClient();
-  const customer = await stripe.customers.create({
+  const payload = {
     email: user.email,
     metadata: {
       user_id: user.id,
       metronome_customer_id: user.metronomeCustomerId ?? "",
     },
-  });
+  };
+  console.log("payload", payload);
+
+  const stripe = getStripeClient();
+  const customer = await stripe.customers.create(payload);
+
+  console.log("createStripeCustomerIfConfigured", customer);
 
   return customer.id;
 }

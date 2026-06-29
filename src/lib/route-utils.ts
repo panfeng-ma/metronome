@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { AppError } from "./billing";
 
-export type FormBody = Record<string, any>;
+export type JsonBody = Record<string, unknown>;
 
 export async function withRouteErrors(
   request: Request,
@@ -10,11 +10,11 @@ export async function withRouteErrors(
   try {
     return await handler();
   } catch (error) {
-    return handleRouteError(request, error);
+    return handleRouteError(error);
   }
 }
 
-export async function readBody(request: Request): Promise<FormBody> {
+export async function readJsonBody(request: Request): Promise<JsonBody> {
   const contentType = request.headers.get("content-type") ?? "";
 
   if (contentType.includes("application/json")) {
@@ -25,73 +25,44 @@ export async function readBody(request: Request): Promise<FormBody> {
   return Object.fromEntries(formData.entries());
 }
 
-export function redirectHome(
-  request: Request,
-  options: { status?: string; customerId?: any; startedAt?: any }
-): Response {
-  return redirectTo(request, buildHomeRedirect(options));
+export function jsonResponse(data: unknown, status = 200): Response {
+  return NextResponse.json(data, { status });
+}
+
+export function jsonError(message: string, status: number): Response {
+  return jsonResponse({ error: message }, status);
 }
 
 export function redirectTo(request: Request, location: string): Response {
   return NextResponse.redirect(new URL(location, request.url), { status: 303 });
 }
 
-export function buildHomeRedirect({
-  status,
-  customerId,
-  startedAt
-}: {
-  status?: string;
-  customerId?: any;
-  startedAt?: any;
-}): string {
-  const query = new URLSearchParams();
-  if (status) {
-    query.set("status", status);
-  }
-  if (customerId) {
-    query.set("customer_id", String(customerId));
-  }
-  if (startedAt) {
-    query.set("started_at", String(startedAt));
-  }
-
-  const queryString = query.toString();
-  return queryString ? `/?${queryString}` : "/";
+export function redirectHomeWithFlash(
+  request: Request,
+  flash: { message: string; success?: boolean }
+): Response {
+  const response = NextResponse.redirect(new URL("/", request.url), { status: 303 });
+  response.cookies.set("flash", JSON.stringify(flash), {
+    maxAge: 60,
+    path: "/",
+    sameSite: "lax"
+  });
+  return response;
 }
 
-async function handleRouteError(request: Request, error: any): Promise<Response> {
+function handleRouteError(error: unknown): Response {
   const normalizedError =
-    error instanceof AppError ? error : Object.assign(error, { status: error.status ?? 500 });
+    error instanceof AppError
+      ? error
+      : error instanceof Error
+        ? Object.assign(error, { status: (error as { status?: number }).status ?? 500 })
+        : new AppError("Server error", 500);
   const status = normalizedError.status ?? 500;
-
-  if (status === 409 && normalizedError.message.includes("不足")) {
-    return redirectTo(request, "/?status=insufficient_balance");
-  }
-
-  if (status === 409 && normalizedError.message.includes("ingest aliases conflict")) {
-    return redirectTo(request, "/?status=customer_alias_conflict");
-  }
-
-  if (status === 400 && normalizedError.message.includes("Metronome Customer")) {
-    return redirectTo(request, "/?status=customer_required");
-  }
-
-  if (status === 400 && normalizedError.message.includes("默认付款方式")) {
-    return redirectTo(request, "/?status=card_setup_required");
-  }
-
-  if (status === 400 && normalizedError.message.includes("METRONOME_RATE_CARD")) {
-    return redirectTo(request, "/?status=contract_unconfigured");
-  }
-
-  if (status === 502 && normalizedError.message.includes("Metronome usage event failed")) {
-    return redirectTo(request, "/?status=consume_failed");
-  }
+  const message = normalizedError.message || "Server error";
 
   if (status >= 500) {
     console.error(normalizedError);
   }
 
-  return new Response(normalizedError.message || "Server error", { status });
+  return jsonError(message, status);
 }

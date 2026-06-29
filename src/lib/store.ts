@@ -11,7 +11,7 @@ const DEFAULT_USER_EMAIL = process.env.DEMO_USER_EMAIL ?? "demo@example.com";
 const DEFAULT_STORE = {
   users: {
     demo: {
-      id: "demo",
+      id: "019e8c2f-6710-7082-84c2-9020bd7ae4e1",
       email: DEFAULT_USER_EMAIL,
       metronomeCustomerId: null,
       lastMetronomeCustomerCreatedAt: null,
@@ -26,16 +26,16 @@ const DEFAULT_STORE = {
         enabled: false,
         threshold: null,
         rechargeToAmount: null,
-        configuredAt: null
+        configuredAt: null,
       },
       balance: 0,
       totalAllowance: 0,
       lowBalanceReminderSent: false,
-      lastRechargeAt: null
-    }
+      lastRechargeAt: null,
+    },
   },
   processedEvents: [],
-  notifications: []
+  notifications: [],
 };
 
 let store;
@@ -88,13 +88,15 @@ export function getUser(currentStore, userId = "demo") {
 }
 
 function hasCreatedCustomer(currentStore) {
-  return Object.values(currentStore.users ?? {}).some((user) => Boolean(user.metronomeCustomerId));
+  return Object.values(currentStore.users ?? {}).some((user) =>
+    Boolean(user.metronomeCustomerId),
+  );
 }
 
 async function persistStore() {
   await mkdir(DATA_DIR, { recursive: true });
   writeQueue = writeQueue.then(() =>
-    writeFile(STORE_FILE, `${JSON.stringify(store, null, 2)}\n`, "utf8")
+    writeFile(STORE_FILE, `${JSON.stringify(store, null, 2)}\n`, "utf8"),
   );
 
   return writeQueue;
